@@ -231,6 +231,7 @@ BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndSumEdit[], HWND hwndButto
 				for (int i = 1; i <= cantText; i++) {
 					ShowWindow(hwndSumEdit[i - 1], SW_NORMAL);
 					ShowWindow(hwndButtonDelete[i - 1], SW_NORMAL);
+					ShowWindow(hwndMulEdit[i - 1], SW_NORMAL);
 				}
 				ShowWindow(hwndButtonCalcular, SW_NORMAL);
 				ShowWindow(hwndButtonAdd, SW_NORMAL);
@@ -239,6 +240,7 @@ BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndSumEdit[], HWND hwndButto
 				for (int i = 1; i <= cantText; i++) {
 					ShowWindow(hwndSumEdit[i-1], SW_HIDE);
 					ShowWindow(hwndButtonDelete[i - 1], SW_HIDE);
+					ShowWindow(hwndMulEdit[i - 1], SW_HIDE);
 				}
 				ShowWindow(hwndButtonCalcular, SW_HIDE);
 				ShowWindow(hwndButtonAdd, SW_HIDE);
@@ -267,9 +269,12 @@ VOID DeleteFunction(int id){
 	if (cantText > 1) {
 		HWND buttonToDestroy = hwndButtonDelete[id - 400];
 		HWND sumToDestroy = hwndSumEdit[id - 400];
+		HWND mulToDestroy = hwndMulEdit[id - 400];
 		for (int i = id - 400; i < cantText - 1; i++) {
 			hwndSumEdit[i] = hwndSumEdit[i + 1];
 			hwndButtonDelete[i] = hwndButtonDelete[i + 1];
+			hwndMulEdit[i] = hwndMulEdit[i + 1];
+			SetWindowLong(hwndButtonDelete[i], GWL_ID, i + 400);
 		}
 		cantText--;
 		RECT rcTab;
@@ -286,6 +291,9 @@ VOID DeleteFunction(int id){
 			SetWindowPos(hwndSumEdit[i], HWND_TOP,
 				rcTab.left + TEXTMARGENLEFT, rcLastText.top + TEXTMARGENTOP, TEXTTABWIDTH, TEXTTABHEIGHT,
 				SWP_NOZORDER | SWP_SHOWWINDOW);
+			SetWindowPos(hwndMulEdit[i], HWND_TOP,
+				rcTab.left + MULMARGENLEFT, rcLastText.top + TEXTMARGENTOP, TEXTTABWIDTH, TEXTTABHEIGHT,
+				SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hwndButtonDelete[i], HWND_TOP,
 				rcTab.left + BUTTONMARGENLEFT, rcLastText.top + TEXTMARGENTOP, BUTTONDELETEWIDTH, BUTTONDELETEHEIGHT,
 				SWP_NOZORDER | SWP_SHOWWINDOW);
@@ -300,11 +308,13 @@ VOID DeleteFunction(int id){
 		for (int i = id - 400; i < cantText; i++) {
 			UpdateWindow(hwndSumEdit[i]);
 			UpdateWindow(hwndButtonDelete[i]);
+			UpdateWindow(hwndMulEdit[i]);
 		}
 		UpdateWindow(hwndButtonCalcular);
 		UpdateWindow(hwndButtonAdd);
 		DestroyWindow(buttonToDestroy);
 		DestroyWindow(sumToDestroy);
+		DestroyWindow(mulToDestroy);
 	}
 	else {
 		MessageBox(NULL, L"Debe quedar al menos un recuadro de calculo", L"Error", MB_OK);
@@ -315,17 +325,19 @@ BOOL OnPress(HWND hwndButtonPressed, WPARAM wParam) {
 	switch(LOWORD(wParam)) {
 		case BUTTONCALCULAR_ID: {
 			int total = 0;
-			wchar_t bufferInput[1024];
+			wchar_t bufferInputSum[1024];
+			wchar_t bufferInputMul[1024];
 			for (int i = 1; i <= cantText; i++) {
-				GetWindowText(hwndSumEdit[i-1], bufferInput, sizeof(bufferInput) / sizeof(bufferInput[0]));
-				if (bufferInput[0] != '\0') {
-					total += std::stoi(bufferInput);
+				GetWindowText(hwndSumEdit[i-1], bufferInputSum, sizeof(bufferInputSum) / sizeof(bufferInputSum[0]));
+				GetWindowText(hwndMulEdit[i - 1], bufferInputMul, sizeof(bufferInputMul) / sizeof(bufferInputMul[0]));
+				if (bufferInputSum[0] != '\0') {
+					total += std::stoi(bufferInputSum) * std::stoi(bufferInputMul);
 				}
 			}
 			if (total != 0) {
-				IntToWchar(total, bufferInput);
+				IntToWchar(total, bufferInputSum);
 			}
-			MessageBox(NULL, bufferInput, L"Total", MB_OK);
+			MessageBox(NULL, bufferInputSum, L"Total", MB_OK);
 
 		}
 			break;
@@ -333,6 +345,7 @@ BOOL OnPress(HWND hwndButtonPressed, WPARAM wParam) {
 			if (cantText < TEXTSLIMIT) {
 				hwndSumEdit[cantText] = CreateEditTextWindow(hwndDisplay);
 				hwndButtonDelete[cantText] = CreateButtonDeleteWindow(hwndDisplay);
+				hwndMulEdit[cantText] = CreateEditMulWindow(hwndDisplay);
 				cantText++;
 				RECT rcLastText;
 				RECT rcTab;
@@ -421,7 +434,7 @@ LRESULT CALLBACK WndProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In
 			hwndDisplay = CreateDisplayWindow(hwndTab);
 			hwndSumEdit[cantText] = CreateEditTextWindow(hwndDisplay);
 			hwndButtonDelete[cantText] = CreateButtonDeleteWindow(hwndDisplay);
-			//hwndMulEdit[cantText] = CreateEditMulWindow(hwndDisplay);
+			hwndMulEdit[cantText] = CreateEditMulWindow(hwndDisplay);
 			cantText++;
 			hwndButtonCalcular = CreateButtonCalcularWindow(hwndDisplay);
 			hwndButtonAdd = CreateButtonAddWindow(hwndDisplay);
