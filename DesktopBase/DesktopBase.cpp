@@ -15,6 +15,7 @@ const int TEXTTABWIDTH = 300;
 const int TEXTTABHEIGHT = 20;
 const int TEXTMARGENLEFT = 40;
 const int TEXTMARGENTOP = 10;
+const int MULMARGENLEFT = 600;
 const int BUTTONWIDTH = 100;
 const int BUTTONHEIGHT = 20;
 const int BUTTONMARGENLEFT = 10;
@@ -28,7 +29,8 @@ const int BUTTONDELETEHEIGHT = 20;
 
 HWND hwndTab;
 HWND hwndDisplay;
-HWND hwndText[TEXTSLIMIT];
+HWND hwndSumEdit[TEXTSLIMIT];
+HWND hwndMulEdit[TEXTSLIMIT];
 HWND hwndButtonCalcular;
 HWND hwndButtonAdd;
 HWND hwndButtonDelete[TEXTSLIMIT];
@@ -117,7 +119,7 @@ HWND CreateEditTextWindow(HWND hwndDisplay) {
 		rcText = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
 	}
 	else {
-		rcText = GetChildWinRelativeCoordinates(hwndText[cantText - 1]);
+		rcText = GetChildWinRelativeCoordinates(hwndSumEdit[cantText - 1]);
 	}
 	TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
 	HWND hwnd = CreateWindowEx(0,
@@ -132,11 +134,34 @@ HWND CreateEditTextWindow(HWND hwndDisplay) {
 	return hwnd;
 }
 
+HWND CreateEditMulWindow(HWND hwndDisplay) {
+	RECT rcTab;
+	RECT rcText;
+	rcTab = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
+	if (cantText == 0) {
+		rcText = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
+	}
+	else {
+		rcText = GetChildWinRelativeCoordinates(hwndMulEdit[cantText - 1]);
+	}
+	TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
+	HWND hwnd = CreateWindowEx(0,
+		WC_EDIT,
+		L"",
+		WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_LEFT,
+		rcTab.left + MULMARGENLEFT, rcText.top + TEXTMARGENTOP, TEXTTABWIDTH, TEXTTABHEIGHT,
+		hwndDisplay,
+		NULL,
+		(HINSTANCE)GetWindowLongPtr(hwndDisplay, GWLP_HINSTANCE),
+		NULL);
+	return hwnd;
+}
+
 HWND CreateButtonCalcularWindow(HWND hwndDisplay) {
 	RECT rcTab;
 	RECT rcText;
 	rcTab = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
-	rcText = GetChildWinRelativeCoordinates(hwndText[0]);
+	rcText = GetChildWinRelativeCoordinates(hwndSumEdit[0]);
 	TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
 	HWND hwnd = CreateWindowEx(0,
 		WC_BUTTON,
@@ -154,7 +179,7 @@ HWND CreateButtonAddWindow(HWND hwndDisplay) {
 	RECT rcTab;
 	RECT rcText;
 	rcTab = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
-	rcText = GetChildWinRelativeCoordinates(hwndText[0]);
+	rcText = GetChildWinRelativeCoordinates(hwndSumEdit[0]);
 	TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
 	HWND hwnd = CreateWindowEx(0,
 		WC_BUTTON,
@@ -176,7 +201,7 @@ HWND CreateButtonDeleteWindow(HWND hwndDisplay) {
 		rcText = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
 	}
 	else {
-		rcText = GetChildWinRelativeCoordinates(hwndText[cantText - 1]);
+		rcText = GetChildWinRelativeCoordinates(hwndSumEdit[cantText - 1]);
 	}
 	TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
 	HWND hwnd = CreateWindowEx(0,
@@ -192,7 +217,7 @@ HWND CreateButtonDeleteWindow(HWND hwndDisplay) {
 }
 
 
-BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndText[], HWND hwndButtonCalcular, LPARAM lParam) {
+BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndSumEdit[], HWND hwndButtonCalcular, LPARAM lParam) {
 
 	switch (((LPNMHDR)lParam)->code) {
 		case TCN_SELCHANGING:
@@ -204,7 +229,7 @@ BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndText[], HWND hwndButtonCa
 			int idSelectedTab = TabCtrl_GetCurSel(hwndTab);
 			if (idSelectedTab == 0) {
 				for (int i = 1; i <= cantText; i++) {
-					ShowWindow(hwndText[i - 1], SW_NORMAL);
+					ShowWindow(hwndSumEdit[i - 1], SW_NORMAL);
 					ShowWindow(hwndButtonDelete[i - 1], SW_NORMAL);
 				}
 				ShowWindow(hwndButtonCalcular, SW_NORMAL);
@@ -212,7 +237,7 @@ BOOL OnNotify(HWND hwndTab, HWND hwndDisplay, HWND hwndText[], HWND hwndButtonCa
 			}
 			else {
 				for (int i = 1; i <= cantText; i++) {
-					ShowWindow(hwndText[i-1], SW_HIDE);
+					ShowWindow(hwndSumEdit[i-1], SW_HIDE);
 					ShowWindow(hwndButtonDelete[i - 1], SW_HIDE);
 				}
 				ShowWindow(hwndButtonCalcular, SW_HIDE);
@@ -239,14 +264,11 @@ BOOL OnSize(HWND hwndDisplay) {
 }
 
 VOID DeleteFunction(int id){
-	if (cantText == 1) {
-		MessageBox(NULL, L"Debe quedar al menos un recuadro de calculo", L"Error", MB_OK);
-	}
-	else {
-		DestroyWindow(hwndButtonDelete[id - 400]);
-		DestroyWindow(hwndText[id - 400]);
+	if (cantText > 1) {
+		HWND buttonToDestroy = hwndButtonDelete[id - 400];
+		HWND sumToDestroy = hwndSumEdit[id - 400];
 		for (int i = id - 400; i < cantText - 1; i++) {
-			hwndText[i] = hwndText[i + 1];
+			hwndSumEdit[i] = hwndSumEdit[i + 1];
 			hwndButtonDelete[i] = hwndButtonDelete[i + 1];
 		}
 		cantText--;
@@ -255,15 +277,20 @@ VOID DeleteFunction(int id){
 		rcTab = GetChildWinRelativeCoordinates(hwndTab);
 		TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
 		for (int i = id - 400; i < cantText; i++) {
-			rcLastText = GetChildWinRelativeCoordinates(hwndText[i - 1]);
-			SetWindowPos(hwndText[i], HWND_TOP,
+			if (i != 0) {
+				rcLastText = GetChildWinRelativeCoordinates(hwndSumEdit[i - 1]);
+			}
+			else {
+				rcLastText = GetChildWinRelativeCoordinates(hwndTab);
+			}
+			SetWindowPos(hwndSumEdit[i], HWND_TOP,
 				rcTab.left + TEXTMARGENLEFT, rcLastText.top + TEXTMARGENTOP, TEXTTABWIDTH, TEXTTABHEIGHT,
 				SWP_NOZORDER | SWP_SHOWWINDOW);
 			SetWindowPos(hwndButtonDelete[i], HWND_TOP,
 				rcTab.left + BUTTONMARGENLEFT, rcLastText.top + TEXTMARGENTOP, BUTTONDELETEWIDTH, BUTTONDELETEHEIGHT,
 				SWP_NOZORDER | SWP_SHOWWINDOW);
 		}
-		rcLastText = GetChildWinRelativeCoordinates(hwndText[cantText - 1]);
+		rcLastText = GetChildWinRelativeCoordinates(hwndSumEdit[cantText - 1]);
 		SetWindowPos(hwndButtonCalcular, HWND_TOP,
 			rcTab.left + BUTTONMARGENLEFT, rcLastText.bottom, BUTTONWIDTH, BUTTONHEIGHT,
 			SWP_NOZORDER | SWP_SHOWWINDOW);
@@ -271,11 +298,16 @@ VOID DeleteFunction(int id){
 			rcTab.left + BUTTONMARGENLEFT * 2 + BUTTONWIDTH, rcLastText.bottom, BUTTONWIDTH, BUTTONHEIGHT,
 			SWP_NOZORDER | SWP_SHOWWINDOW);
 		for (int i = id - 400; i < cantText; i++) {
-			UpdateWindow(hwndText[i]);
+			UpdateWindow(hwndSumEdit[i]);
 			UpdateWindow(hwndButtonDelete[i]);
 		}
 		UpdateWindow(hwndButtonCalcular);
 		UpdateWindow(hwndButtonAdd);
+		DestroyWindow(buttonToDestroy);
+		DestroyWindow(sumToDestroy);
+	}
+	else {
+		MessageBox(NULL, L"Debe quedar al menos un recuadro de calculo", L"Error", MB_OK);
 	}
 }
 
@@ -285,7 +317,7 @@ BOOL OnPress(HWND hwndButtonPressed, WPARAM wParam) {
 			int total = 0;
 			wchar_t bufferInput[1024];
 			for (int i = 1; i <= cantText; i++) {
-				GetWindowText(hwndText[i-1], bufferInput, sizeof(bufferInput) / sizeof(bufferInput[0]));
+				GetWindowText(hwndSumEdit[i-1], bufferInput, sizeof(bufferInput) / sizeof(bufferInput[0]));
 				if (bufferInput[0] != '\0') {
 					total += std::stoi(bufferInput);
 				}
@@ -299,14 +331,14 @@ BOOL OnPress(HWND hwndButtonPressed, WPARAM wParam) {
 			break;
 		case BUTTONADD_ID: {
 			if (cantText < TEXTSLIMIT) {
-				hwndText[cantText] = CreateEditTextWindow(hwndDisplay);
+				hwndSumEdit[cantText] = CreateEditTextWindow(hwndDisplay);
 				hwndButtonDelete[cantText] = CreateButtonDeleteWindow(hwndDisplay);
 				cantText++;
 				RECT rcLastText;
 				RECT rcTab;
 				rcTab = GetChildWinRelativeCoordinates(GetParent(hwndDisplay));
 				TabCtrl_AdjustRect(hwndTab, FALSE, &rcTab);
-				rcLastText = GetChildWinRelativeCoordinates(hwndText[cantText - 1]);
+				rcLastText = GetChildWinRelativeCoordinates(hwndSumEdit[cantText - 1]);
 				SetWindowPos(hwndButtonCalcular, HWND_TOP,
 					rcTab.left + BUTTONMARGENLEFT, rcLastText.bottom, BUTTONWIDTH, BUTTONHEIGHT,
 					SWP_NOZORDER | SWP_SHOWWINDOW);
@@ -387,8 +419,9 @@ LRESULT CALLBACK WndProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In
 		case WM_CREATE: {
 			hwndTab = CreateTabControl(hwnd);
 			hwndDisplay = CreateDisplayWindow(hwndTab);
-			hwndText[cantText] = CreateEditTextWindow(hwndDisplay);
+			hwndSumEdit[cantText] = CreateEditTextWindow(hwndDisplay);
 			hwndButtonDelete[cantText] = CreateButtonDeleteWindow(hwndDisplay);
+			//hwndMulEdit[cantText] = CreateEditMulWindow(hwndDisplay);
 			cantText++;
 			hwndButtonCalcular = CreateButtonCalcularWindow(hwndDisplay);
 			hwndButtonAdd = CreateButtonAddWindow(hwndDisplay);
@@ -396,7 +429,7 @@ LRESULT CALLBACK WndProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In
 		}
 			break;
 		case WM_NOTIFY: {
-			OnNotify(hwndTab, hwndDisplay, hwndText, hwndButtonCalcular, lParam);
+			OnNotify(hwndTab, hwndDisplay, hwndSumEdit, hwndButtonCalcular, lParam);
 		}
 			break;
 
