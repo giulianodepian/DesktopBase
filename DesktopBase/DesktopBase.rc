@@ -26,7 +26,7 @@ LANGUAGE LANG_SPANISH, SUBLANG_SPANISH_MODERN
 
 STRINGTABLE
 BEGIN
-    IDS_STRING101           "Prueba"
+    IDS_STRING101           "Calculo"
     IDS_STRING102           "Texto De Pueba Del Display"
     IDS_STRING103           "Otra Prueba"
     IDS_STRING104           "Prueba2"
